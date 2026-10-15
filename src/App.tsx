@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 
 type User = {
   id: number;
@@ -10,32 +11,67 @@ type User = {
 
 function App() {
 
-  const [users, setUsers] = useState<User[]>([
-    { id: 1, name: "Kie", age: 29},
-    { id: 2, name: "Billy", age: 27}
-  ])
+  const [users, setUsers] = useState<User[]>([]);
 
   const [name, setName] = useState<string>("");
   const [age, setAge] = useState<string>("");
 
   const appName: string = "Mini Flip";
 
-  function addUser() {
-    const newUser: User = {
-      id: Math.max(0, ...users.map( user => user.id)) + 1,
-      name: name.trim(),
-      age: Number(age)
-    };
+  const addUser = async () => {
+    const trimmedName = name.trim();
+    const userAge = Number(age);
 
-    if (!newUser.name || !age.trim() || !Number.isInteger(newUser.age) || newUser.age <= 0) {
-      alert("Please enter a valid name or age");
+    if(
+      !trimmedName ||
+      !age.trim() ||
+      !Number.isInteger(userAge) ||
+      userAge <= 0
+    ) {
+      alert("please enter a valid name and age");
       return;
     }
 
-    setUsers([...users, newUser])
-    setName("");
-    setAge("");
+    const { data, error } = await supabase
+    .from("users")
+    .insert([
+    {
+      name: trimmedName,
+      age: userAge
+    }
+  ]).select();
+
+  if (error) {
+    console.error("Error adding user:", error.message);
+    alert("Failed to add user");
+    return;
   }
+
+  setUsers((prevUsers) => [...prevUsers, ...data]);
+
+  setName("");
+  setAge("");
+
+    
+
+  }
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+      .from("users")
+      .select("*");
+
+      if (error) {
+        console.error("Error fetching users:", error.message);
+        return;
+      }
+
+      setUsers(data as User[]);
+    };
+
+    fetchUsers();
+  }, []);
 
   return (
     <div>
@@ -75,3 +111,4 @@ function App() {
 }
 
 export default App;
+
