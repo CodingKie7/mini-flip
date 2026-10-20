@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 
+import { userSchema } from "./userSchema";
+
 type User = {
   id: number;
   name: string;
@@ -22,27 +24,20 @@ function App() {
   const appName: string = "Mini Flip";
 
   const addUser = async () => {
-    const trimmedName = name.trim();
-    const userAge = Number(age);
+    const result = userSchema.safeParse({
+      name: name,
+      age: Number(age)
+    })
 
-    if(
-      !trimmedName ||
-      !age.trim() ||
-      !Number.isInteger(userAge) ||
-      userAge <= 0
-    ) {
-      alert("please enter a valid name and age");
+    if (!result.success) {
+      alert(result.error.issues[0].message);
       return;
     }
 
     const { data, error } = await supabase
     .from("users")
-    .insert([
-      {
-        name: trimmedName,
-        age: userAge
-      }
-    ]).select();
+    .insert([result.data])
+    .select();
 
     if (error) {
       console.error("Error adding user:", error.message);
@@ -55,6 +50,8 @@ function App() {
     setName("");
     setAge("");
   }
+
+
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -82,27 +79,19 @@ function App() {
   const updateUser = async () => {
     if (editingId === null) return;
 
-    const trimmedName = editName.trim();
-    const newAge = Number(editAge);
+    const result = userSchema.safeParse({
+      name: editName,
+      age: Number(editAge)
+    });
 
-    if (
-      !trimmedName ||
-      !editAge.trim() ||
-      !Number.isInteger(newAge) ||
-      newAge <= 0
-    ) {
-      alert("Please enter a valid name and age");
+    if (!result.success) {
+      alert(result.error.issues[0].message);
       return;
     }
 
     const { data, error } = await supabase
     .from("users")
-    .update(
-      {
-        name: trimmedName,
-        age: newAge
-      }
-    )
+    .update(result.data)
       .eq("id", editingId)
       .select();
 
