@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 
 import { userSchema } from "./userSchema";
+import SignUp from "./SignUp";
+import Login from "./Login";
 
 type User = {
   id: number;
@@ -53,7 +55,7 @@ function App() {
 
 
 
-  useEffect(() => {
+  /* useEffect(() => {
     const fetchUsers = async () => {
       const { data, error } = await supabase
       .from("users")
@@ -68,6 +70,48 @@ function App() {
     };
 
     fetchUsers();
+  }, []); */
+
+  useEffect(() => {
+
+    let active = true;
+
+    const fetchUsers = async() => {
+      const { data, error } = await supabase
+      .from("users")
+      .select("*");
+
+      if(!active) return;
+
+      if(error) {
+        console.error("Error Fetching users:", error.message);
+        return;
+      }
+
+      setUsers(data as User[]);
+    };
+
+    const { data: { subscription }, }
+      = supabase.auth.onAuthStateChange((event) => {
+
+        if(event === "SIGNED_OUT") {
+          setUsers([]);
+          return;
+        }
+
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+          setTimeout(() => {
+            if(active) fetchUsers();
+          }, 0);
+
+        }
+
+      });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    }
   }, []);
 
   const startEditing = (user: User) => {
@@ -145,6 +189,10 @@ function App() {
 
   return (
     <div>
+      <SignUp />
+
+      <Login />
+
       <h1>{appName}</h1>
 
       <h2>Registered Users</h2>
